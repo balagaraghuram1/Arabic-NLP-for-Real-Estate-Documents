@@ -1,0 +1,307 @@
+#!/usr/bin/env python3
+"""
+==============================================================================
+Arabic NLP for Real Estate Documents: Main Orchestrator Script
+==============================================================================
+This script provides a command-line interface to manage:
+    (1) Data Preprocessing of Arabic real estate documents
+    (2) Named Entity Recognition (NER) or other NLP model training
+    (3) Extraction / Inference on new Arabic text data
+    (4) Optional hyperparameter tuning
+    (5) Basic logging, debugging modes, and GPU usage flags
+
+Example Use Cases:
+    python main.py preprocess --verbose
+    python main.py train-ner --epochs 10 --tune --gpu
+    python main.py infer --text "عقد إيجار شقة في دبي بمساحة ١٠٠ متر مربع بسعر ٥٠ ألف درهم"
+    python main.py train-ner --epochs 15 --batch-size 8
+    python main.py infer --file data/new_document.txt
+
+Project Folder Assumption:
+    arabic-real-estate-nlp/
+    ├── data/
+    │    ├── raw_arabic_docs/
+    │    └── training_corpus.csv
+    ├── models/
+    │    └── nlp_ner_model.bin
+    ├── src/
+    │    ├── doc_parser.py
+    │    ├── ner_training.py
+    │    ├── inference.py
+    │    └── utils.py
+    ├── tests/
+    ├── docs/
+    ├── animations/
+    ├── .gitignore
+    ├── LICENSE
+    ├── README.md
+    └── requirements.txt
+
+Author: Your Name
+Date: YYYY-MM-DD
+Contact: your.email@example.com
+License: MIT (or other)
+==============================================================================
+"""
+
+import argparse
+import logging
+import os
+import sys
+import time
+
+# Hypothetical imports from local modules (adapt them to your actual structure)
+# from src.doc_parser import preprocess_arabic_docs
+# from src.ner_training import train_ner_model, tune_ner_model
+# from src.inference import infer_text, infer_from_file
+
+###############################################################################
+# Setup Logging
+###############################################################################
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+###############################################################################
+# Main Orchestration
+###############################################################################
+
+def main():
+    """
+    Main CLI orchestrator for Arabic NLP in real estate documents. It handles:
+    - Preprocessing raw Arabic text data
+    - Training Named Entity Recognition (NER) or other NLP models
+    - Inference / extraction from new documents or text
+    - Hyperparameter tuning if requested
+    """
+
+    parser = argparse.ArgumentParser(
+        prog="Arabic-RealEstate-NLP",
+        description="Manages data preprocessing, NLP model training, and inference for Arabic real estate docs."
+    )
+
+    subparsers = parser.add_subparsers(
+        title="Subcommands",
+        description="Choose one of the available subcommands for your NLP workflow",
+        dest="subcommand",
+        required=True
+    )
+
+    #------------------------------------------------------------------------
+    # Subcommand: preprocess
+    #------------------------------------------------------------------------
+    parser_preprocess = subparsers.add_parser(
+        "preprocess",
+        help="Preprocess Arabic text documents (cleaning, tokenization, etc.)"
+    )
+    parser_preprocess.add_argument(
+        "--input-dir",
+        type=str,
+        default="data/raw_arabic_docs/",
+        help="Directory containing raw Arabic document files"
+    )
+    parser_preprocess.add_argument(
+        "--output-csv",
+        type=str,
+        default="data/training_corpus.csv",
+        help="Output path for the cleaned/training corpus file"
+    )
+    parser_preprocess.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose debug-level logging"
+    )
+
+    #------------------------------------------------------------------------
+    # Subcommand: train-ner
+    #------------------------------------------------------------------------
+    parser_train_ner = subparsers.add_parser(
+        "train-ner",
+        help="Train an NER (Named Entity Recognition) or other NLP model on Arabic real estate texts"
+    )
+    parser_train_ner.add_argument(
+        "--epochs",
+        type=int,
+        default=10,
+        help="Number of training epochs"
+    )
+    parser_train_ner.add_argument(
+        "--batch-size",
+        type=int,
+        default=16,
+        help="Batch size for NLP model training"
+    )
+    parser_train_ner.add_argument(
+        "--tune",
+        action="store_true",
+        help="Enable hyperparameter tuning"
+    )
+    parser_train_ner.add_argument(
+        "--gpu",
+        action="store_true",
+        help="Utilize GPU if available (for large models like transformers)"
+    )
+    parser_train_ner.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging for debugging"
+    )
+
+    #------------------------------------------------------------------------
+    # Subcommand: infer
+    #------------------------------------------------------------------------
+    parser_infer = subparsers.add_parser(
+        "infer",
+        help="Run inference / extraction on a given Arabic text or file"
+    )
+    # Provide either text snippet or a file
+    parser_infer.add_argument(
+        "--text",
+        type=str,
+        help="A direct Arabic text snippet for extraction"
+    )
+    parser_infer.add_argument(
+        "--file",
+        type=str,
+        help="Path to a text file containing Arabic real estate content"
+    )
+    parser_infer.add_argument(
+        "--gpu",
+        action="store_true",
+        help="Use GPU if your inference approach can benefit from it"
+    )
+    parser_infer.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose debugging logs"
+    )
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # Optional performance tracking
+    start_time = time.time()
+
+    # Verbosity
+    if args.subcommand and getattr(args, "verbose", False):
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.debug("Verbose logging enabled.")
+
+    #------------------------------------------------------------------------
+    # Subcommand Logic
+    #------------------------------------------------------------------------
+    if args.subcommand == "preprocess":
+        handle_preprocess(args)
+
+    elif args.subcommand == "train-ner":
+        handle_train_ner(args)
+
+    elif args.subcommand == "infer":
+        handle_infer(args)
+
+    else:
+        logging.error(f"Unknown subcommand: {args.subcommand}")
+        parser.print_help()
+        sys.exit(1)
+
+    # Performance summary
+    elapsed = time.time() - start_time
+    logging.info(f"Total execution time: {elapsed:.2f} seconds")
+
+###############################################################################
+# Subcommand Handlers
+###############################################################################
+
+def handle_preprocess(args):
+    """
+    Handler for the 'preprocess' subcommand. Typically:
+    1) Reads raw Arabic docs from --input-dir
+    2) Tokenizes, cleans, normalizes Arabic text (e.g., remove diacritics)
+    3) Saves a CSV or corpus file at --output-csv
+    """
+    logging.info("Starting Arabic text preprocessing...")
+    logging.info(f"Input dir: {args.input_dir}, Output CSV: {args.output_csv}")
+
+    # Example call to your data preprocessing function
+    # preprocess_arabic_docs(input_dir=args.input_dir, output_csv=args.output_csv)
+
+    # For demonstration, let's pretend we do something trivial here:
+    logging.info("Arabic text preprocessing completed. (Placeholder code)")
+    # In a real script, you'd parse each .txt in input_dir, clean it, and store results in output_csv.
+
+def handle_train_ner(args):
+    """
+    Handler for the 'train-ner' subcommand. Typically:
+    1) Reads the prepared corpus (data/training_corpus.csv)
+    2) Trains an NER or other NLP model for extracting real estate fields (price, location, etc.)
+    3) Possibly runs hyperparam tuning if --tune is set
+    4) Saves the final model (e.g. models/nlp_ner_model.bin)
+    """
+    logging.info("Starting NER model training for Arabic real estate documents...")
+    logging.info(f"Epochs={args.epochs}, Batch-size={args.batch_size}, Tune={args.tune}, GPU={args.gpu}")
+
+    if args.gpu:
+        logging.info("GPU usage requested. Ensure your environment supports GPU for NLP training.")
+
+    if args.tune:
+        logging.info("Hyperparameter tuning enabled.")
+        # Example usage:
+        # tune_ner_model(epochs=args.epochs, batch_size=args.batch_size, use_gpu=args.gpu)
+    else:
+        # Example usage:
+        # train_ner_model(epochs=args.epochs, batch_size=args.batch_size, use_gpu=args.gpu)
+        pass
+
+    logging.info("Arabic NER training complete. Model saved in './models/' (Placeholder).")
+
+def handle_infer(args):
+    """
+    Handler for the 'infer' subcommand. Typically:
+    1) Loads the trained model from models/nlp_ner_model.bin
+    2) Runs NER or extraction on the given text snippet or file
+    3) Prints out recognized entities (location, price, property type, etc.)
+    """
+    logging.info("Starting inference on Arabic text/documents...")
+
+    # Confirm input
+    if args.text is None and args.file is None:
+        logging.error("You must provide either --text or --file for inference.")
+        sys.exit(1)
+
+    # GPU usage flag
+    if args.gpu:
+        logging.info("GPU usage requested for inference. (If the model benefits from GPU)")
+
+    if args.text:
+        # Example call: recognized = infer_text(args.text, use_gpu=args.gpu)
+        recognized = {
+            "price": "50,000 AED",
+            "location": "دبي",
+            "property_type": "شقة"
+        }  # placeholder
+        logging.info(f"Inference results: {recognized}")
+        print(f"\n[RESULT] Extracted info from text: {recognized}")
+
+    elif args.file:
+        if not os.path.exists(args.file):
+            logging.error(f"File not found: {args.file}")
+            sys.exit(1)
+
+        # Example call: recognized = infer_from_file(args.file, use_gpu=args.gpu)
+        recognized = {
+            "location": "أبو ظبي",
+            "size": "١٢٠ متر مربع",
+            "price": "٦٠ ألف درهم"
+        }  # placeholder
+        logging.info(f"Inference results: {recognized}")
+        print(f"\n[RESULT] Extracted info from file '{args.file}': {recognized}")
+
+###############################################################################
+# Main Guard
+###############################################################################
+
+if __name__ == "__main__":
+    main()
